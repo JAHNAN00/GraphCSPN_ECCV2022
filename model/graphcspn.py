@@ -214,8 +214,10 @@ class Graph_Prop(nn.Module):
                                        padding=0,
                                        bias=False)
         x_3d, y_3d = self.camera()
-        self.x_3d = x_3d
-        self.y_3d = y_3d
+        # Keep the original camera values, but move them with the model before
+        # inference instead of copying CPU tensors during every forward.
+        self.register_buffer('x_3d', x_3d.float(), persistent=False)
+        self.register_buffer('y_3d', y_3d.float(), persistent=False)
 
         self._ini_conv()
 
@@ -325,7 +327,8 @@ class GraphCSPN(nn.Module):
         self.conv1_dep = conv_bn_relu(1, 16, kernel=3, stride=1, padding=1,
                                       bn=False)
 
-        net = torchvision.models.resnet34(pretrained=True)
+        net = torchvision.models.resnet34(
+            weights=None if getattr(args, 'from_scratch', False) else 'DEFAULT')
 
         # 1/1
         self.conv2 = net.layer1
